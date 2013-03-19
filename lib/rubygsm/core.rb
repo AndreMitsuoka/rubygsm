@@ -897,7 +897,7 @@ module Gsm
     # Note: New messages may arrive at any time, even if this method's
     # receiver thread isn't waiting to process them. They are not lost,
     # but cached in @incoming until this method is called.
-    def receive(callback, interval=5, join_thread=true)
+    def receive(interval=5, join_thread=true)
       @polled = 0
 
       Thread.list.each {|a| puts " 1 -#{a.inspect}: #{a[:name]}"}
@@ -935,15 +935,14 @@ module Gsm
           unless @incoming.empty?
             @incoming.each do |msg|
               begin
-                puts "msg.text and msg.from #{msg.text} #{msg.sender}\n\n"
-                #puts #{callback.call.class}"
-                callback.call(msg)
-
+                puts "\n msg.text and msg.from #{msg.text} #{msg.sender}\n"
+                #Calling the method that I want
+                User.find_for_user(msg)
+            
               rescue StandardError => err
                 log "Error in callback: #{err}"
               end
             end
-
             # we have dealt with all of the pending
             # messages. todo: this is a ridiculous
             # race condition, and i fail at ruby
