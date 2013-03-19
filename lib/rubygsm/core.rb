@@ -1,6 +1,6 @@
 require "timeout"
 require "date"
-
+require 'thread'
 # gems (we're using the ruby-serialport gem
 # now, so we can depend upon it in our spec)
 require "rubygems"
@@ -98,9 +98,12 @@ module Gsm
       # initialize the modem; rubygsm is (supposed to be) robust enough to function
       # without these working (hence the "try_"), but they make different modems more
       # consistant, and the logs a bit more sane.
+
+
       try_command "ATE0"      # echo off
       try_command "AT+CMEE=1" # useful errors
-      # try_command "AT+WIND=0" # no notifications
+      #try_command "AT+WIND=0" # no notifications
+      #try_command "AT+CMGD?"
 
       # PDU mode isn't supported right now (although
       # it should be, because it's quite simple), so
@@ -111,7 +114,7 @@ module Gsm
     private
 
     INCOMING_FMT = "%y/%m/%d,%H:%M:%S%Z" #:nodoc:
-    CMGL_STATUS = "REC UNREAD" #:nodoc:
+    CMGL_STATUS = "ALL" #:nodoc:
 
     def parse_incoming_timestamp(ts)
       # extract the weirdo quarter-hour timezone,
@@ -894,25 +897,34 @@ module Gsm
     # Note: New messages may arrive at any time, even if this method's
     # receiver thread isn't waiting to process them. They are not lost,
     # but cached in @incoming until this method is called.
-    def receive(callback, interval=5, join_thread=false)
+    def receive(callback, interval=5, join_thread=true)
       @polled = 0
 
+      Thread.list.each {|a| puts " 1 -#{a.inspect}: #{a[:name]}"}
+
       @thr = Thread.new do
+
         Thread.current["name"] = "receiver"
 
         # keep on receiving forever
         while true
           command "AT"
+          command "AT+CPMS?"
+
 
           # enable new message notification mode every ten intevals, in case the
           # modem "forgets" (power cycle, etc)
           if (@polled % 10) == 0
-            try_command("AT+CNMI=2,2,0,0,0")
+           try_command("AT+CNMI?")
+
+            puts"try\n"
+            try_command("AT+CNMI=2,1,0,2,0")
           end
 
           # check for new messages lurking in the device's
           # memory (in case we missed them (yes, it happens))
           if (@polled % 4) == 0
+            puts"try2\n"
             fetch_stored_messages
           end
 
@@ -923,6 +935,8 @@ module Gsm
           unless @incoming.empty?
             @incoming.each do |msg|
               begin
+                puts "msg.text and msg.from #{msg.text} #{msg.sender}\n\n"
+                #puts #{callback.call.class}"
                 callback.call(msg)
 
               rescue StandardError => err
@@ -945,15 +959,20 @@ module Gsm
 
       # it's sometimes handy to run single-
       # threaded (like debugging handsets)
+      Thread.list.each {|a| puts " 2 - #{a.inspect}: #{a[:name]}"}
+
       @thr.join if join_thread
     end
 
 
     def fetch_stored_messages
-
+      command "AT+CMGF=1"
       # fetch all/unread (see constant) messages
       lines = command('AT+CMGL="%s"' % CMGL_STATUS)
+      
+
       n = 0
+      puts "#{lines}"
 
       # if the last line returned is OK
       # (and it SHOULD BE), remove it
@@ -962,6 +981,7 @@ module Gsm
       # keep on iterating the data we received,
       # until there's none left. if there were no
       # stored messages waiting, this done nothing!
+      puts "#{lines}"
       while n < lines.length
 
         # attempt to parse the CMGL line (we're skipping
@@ -979,11 +999,13 @@ module Gsm
         nn += 1 until\
           nn >= lines.length ||\
           lines[nn][0,6] == "+CMGL:"
-
+          puts"lines [nn]: #{lines[nn]}\n"
+           
         # extract the meta-info from the CMGL line, and the
         # message text from the lines between _n_ and _nn_
         index, status, from, timestamp = *m.captures
         msg_text = lines[(n+1)..(nn-1)].join("\n").strip
+        puts "check msg: #{index} , #{from},#{timestamp},#{msg_text}\n\n"
 
         # log the incoming message
         log "Fetched stored message from #{from}: #{msg_text.inspect}"
@@ -993,7 +1015,10 @@ module Gsm
         # is kind of ghetto, and WILL change later)
         sent = parse_incoming_timestamp(timestamp)
         msg = Gsm::Incoming.new(self, from, sent, msg_text)
+        puts "msg.text fetch: #{msg.text} #{msg.sender}"
         @incoming.push(msg)
+        #delete the SMS form modem, by index
+        try_command("AT+CMGD="+"#{index}") 
 
         # skip over the messge line(s),
         # on to the next CMGL line
