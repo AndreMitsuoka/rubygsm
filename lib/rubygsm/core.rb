@@ -897,7 +897,7 @@ module Gsm
     # Note: New messages may arrive at any time, even if this method's
     # receiver thread isn't waiting to process them. They are not lost,
     # but cached in @incoming until this method is called.
-    def receive(interval=5, join_thread=true)
+    def receive(interval=1, join_thread=true)
       @polled = 0
 
       Thread.list.each {|a| puts " 1 -#{a.inspect}: #{a[:name]}"}
