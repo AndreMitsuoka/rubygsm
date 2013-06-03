@@ -980,7 +980,7 @@ module Gsm
       # keep on iterating the data we received,
       # until there's none left. if there were no
       # stored messages waiting, this done nothing!
-      puts "#{lines}"
+      puts "Lines #{lines}"
       while n < lines.length
 
         # attempt to parse the CMGL line (we're skipping
