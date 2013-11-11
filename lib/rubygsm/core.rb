@@ -987,42 +987,45 @@ module Gsm
         # two lines at a time in this loop, so we will
         # always land at a CMGL line here) - they look like:
         #   +CMGL: 0,"REC READ","+13364130840",,"09/03/04,21:59:31-20"
-        unless m = lines[n].match(/^\+CMGL: (\d+),"(.+?)","(.+?)",*?,"(.+?)".*?$/)
-          err = "Couldn't parse CMGL data: #{lines[n]}"
-          raise RuntimeError.new(err)
-        end
 
-        # find the index of the next
-        # CMGL line, or the end
-        nn = n+1
-        nn += 1 until\
-          nn >= lines.length ||\
-          lines[nn][0,6] == "+CMGL:"
-          puts"lines [nn]: #{lines[nn]}\n"
-           
-        # extract the meta-info from the CMGL line, and the
-        # message text from the lines between _n_ and _nn_
-        index, status, from, timestamp = *m.captures
-        msg_text = lines[(n+1)..(nn-1)].join("\n").strip
-        puts "check msg: #{index} , #{from},#{timestamp},#{msg_text}\n\n"
+        #CHANGE BECAUSE OF THE ERROR ...
 
-        # log the incoming message
-        log "Fetched stored message from #{from}: #{msg_text.inspect}"
+        if m = lines[n].match(/^\+CMGL: (\d+),"(.+?)","(.+?)",*?,"(.+?)".*?$/)
+            #err = "Couldn't parse CMGL data: #{lines[n]}"
+            #raise RuntimeError.new(err)
+          
+          # find the index of the next
+          # CMGL line, or the end
+          nn = n+1
+          nn += 1 until\
+            nn >= lines.length ||\
+            lines[nn][0,6] == "+CMGL:"
+            puts"lines [nn]: #{lines[nn]}\n"
+             
+          # extract the meta-info from the CMGL line, and the
+          # message text from the lines between _n_ and _nn_
+          index, status, from, timestamp = *m.captures
+          msg_text = lines[(n+1)..(nn-1)].join("\n").strip
+          puts "check msg: #{index} , #{from},#{timestamp},#{msg_text}\n\n"
 
-        # store the incoming data to be picked up
-        # from the attr_accessor as a tuple (this
-        # is kind of ghetto, and WILL change later)
-        sent = parse_incoming_timestamp(timestamp)
-        msg = Gsm::Incoming.new(self, from, sent, msg_text)
-        puts "msg.text fetch: #{msg.text} #{msg.sender}"
-        @incoming.push(msg)
-        #delete the SMS form modem, by index
-        try_command("AT+CMGD="+"#{index}") 
+          # log the incoming message
+          log "Fetched stored message from #{from}: #{msg_text.inspect}"
 
-        # skip over the messge line(s),
-        # on to the next CMGL line
-        n = nn
-      end
+          # store the incoming data to be picked up
+          # from the attr_accessor as a tuple (this
+          # is kind of ghetto, and WILL change later)
+          sent = parse_incoming_timestamp(timestamp)
+          msg = Gsm::Incoming.new(self, from, sent, msg_text)
+          puts "msg.text fetch: #{msg.text} #{msg.sender}"
+          @incoming.push(msg)
+          #delete the SMS form modem, by index
+          try_command("AT+CMGD="+"#{index}") 
+
+          # skip over the messge line(s),
+          # on to the next CMGL line
+          n = nn
+        end #ENDIF
+      end #ENDWHILE
     end
   end # Modem
 end # Gsm
