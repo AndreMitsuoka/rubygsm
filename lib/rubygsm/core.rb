@@ -897,7 +897,7 @@ module Gsm
     # Note: New messages may arrive at any time, even if this method's
     # receiver thread isn't waiting to process them. They are not lost,
     # but cached in @incoming until this method is called.
-    def receive(interval=1, join_thread=true)
+    def receive(interval=2, join_thread=true)
       @polled = 0
 
       Thread.list.each {|a| puts " 1 -#{a.inspect}: #{a[:name]}"}
@@ -917,14 +917,14 @@ module Gsm
           if (@polled % 10) == 0
            try_command("AT+CNMI?")
 
-            puts"try\n"
+            puts "try - AT+CNMI?\n"
             try_command("AT+CNMI=2,1,0,2,0")
           end
 
           # check for new messages lurking in the device's
           # memory (in case we missed them (yes, it happens))
           if (@polled % 4) == 0
-            puts"try2\n"
+            puts"try2 fetch_stored_messages\n"
             fetch_stored_messages
           end
 
@@ -935,6 +935,7 @@ module Gsm
           unless @incoming.empty?
             @incoming.each do |msg|
               begin
+                #Display the message, and pass to my ruby application
                 puts "\n msg.text and msg.from #{msg.text} #{msg.sender}\n"
                 #Calling the method that I want
                 User.find_for_user(msg)
@@ -980,7 +981,7 @@ module Gsm
       # keep on iterating the data we received,
       # until there's none left. if there were no
       # stored messages waiting, this done nothing!
-      puts "Lines #{lines}"
+      #puts "Lines #{lines}"
       while n < lines.length
 
         # attempt to parse the CMGL line (we're skipping
@@ -988,6 +989,7 @@ module Gsm
         # always land at a CMGL line here) - they look like:
         #   +CMGL: 0,"REC READ","+13364130840",,"09/03/04,21:59:31-20"
         unless m = lines[n].match(/^\+CMGL: (\d+),"(.+?)","(.+?)",*?,"(.+?)".*?$/)
+          
           err = "Couldn't parse CMGL data: #{lines[n]}"
           raise RuntimeError.new(err)
         end
