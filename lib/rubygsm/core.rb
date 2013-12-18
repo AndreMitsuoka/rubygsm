@@ -1026,6 +1026,7 @@ module Gsm
           puts"último if -- Inicio log"
         else
           puts "\n\nELSE -- fim log \n\n"
+
           # find the index of the next
           # CMGL line, or the end
           nn = n+1
@@ -1038,8 +1039,8 @@ module Gsm
           # message text from the lines between _n_ and _nn_
           index, status, from, timestamp = *m.captures
           msg_text = lines[(n+1)..(nn-1)].join("\n").strip
-          #delete the SMS form modem, by index
 
+          #delete the SMS form modem, by index
           try_command("AT+CMGD="+"#{index}") 
           # skip over the messge line(s),
           # on to the next CMGL line
