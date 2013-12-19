@@ -1023,7 +1023,7 @@ module Gsm
           # skip over the messge line(s),
           # on to the next CMGL line
           n = nn
-          puts"último if -- Inicio log"
+          puts"ultimo if -- Inicio log"
         else
           puts "\n\nELSE -- fim log \n\n"
 
