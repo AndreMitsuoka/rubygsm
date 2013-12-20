@@ -972,7 +972,7 @@ module Gsm
       
 
       n = 0
-      puts "\n--Inicio  log Display var lines = command('AT+CMGL="%s"' % CMGL_STATUS) \n\n"
+      puts "\n--Inicio  log Display var lines = command... % CMGL_STATUS) \n\n"
       puts "#{lines}"
       puts "LINES[-1] #{lines[-1]} \n --fim log display"
 
